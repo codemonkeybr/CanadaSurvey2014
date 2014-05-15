@@ -8,15 +8,57 @@
 	xmlns:p="http://primefaces.org/ui">
 
 <h:head>
-
+	<script src="http://maps.google.com/maps/api/js?sensor=false"
+		type="text/javascript"></script>
 </h:head>
 
 <h:body>
 	<h:form>
-		<p:gmap center="41.381542, 2.122893" zoom="15" type="MAP"
-        style="width:600px;height:400px" />
-		<p:commandButton value="Non-Ajax Submit"
-			actionListener="#{surveyController.carregar}" ajax="false" />Ola
-       </h:form>
+		<p:panelGrid columns="2">
+
+			<p:gmap center="54.460594, -96.200019" zoom="4" type="MAP"
+				style="width:800px;height:600px"
+				model="#{surveyController.advancedModel}" >
+				
+				<p:ajax event="overlaySelect" listener="#{surveyController.onMarkerSelect}" />
+				
+				<p:gmapInfoWindow>
+					<p:outputPanel style="text-align:center;display:block;margin:auto">
+						<h:outputText value="#{surveyController.marker.title}" />
+						<p/>
+						<h:outputText value="#{surveyController.marker.data}" />
+					</p:outputPanel>
+				</p:gmapInfoWindow>
+			</p:gmap>
+			<p:panel>
+				<p:panelGrid columns="2" width="100%">
+					<p:outputLabel value="Min Value #{surveyController.minValue}" />
+					<p:outputLabel value="Max Value #{surveyController.maxValue}" />
+				</p:panelGrid>
+				<p>
+					<img src="#{request.contextPath}/icons/yellow-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[0][0]} - #{surveyController.markersRange[0][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/blue-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[1][0]} - #{surveyController.markersRange[1][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/green-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[2][0]} - #{surveyController.markersRange[2][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/purple-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[3][0]} - #{surveyController.markersRange[3][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/red-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[4][0]} - #{surveyController.markersRange[4][1]}" /><br/>
+				</p>
+				<p:panelGrid columns="1">
+					<p:selectOneRadio id="options" value="#{surveyController.selectedItem}" layout="grid" columns="2">
+						<f:selectItem itemLabel="POPULATION" itemValue="1" />
+						<f:selectItem itemLabel="POPULATION GROWTH 2008 TO 2013"
+							itemValue="2" />
+						<f:selectItem itemLabel="AVERAGE HOUSEHOLD INCOME" itemValue="3" />
+						<f:selectItem itemLabel="AVERAGE HOUSEHOLD NET WORTH"
+							itemValue="4" />
+						<f:selectItem itemLabel="AVERAGE HOUSE PRICES" itemValue="5" />
+					</p:selectOneRadio>
+
+				</p:panelGrid>
+				<p:commandButton value="atualizar" process="options"
+					actionListener="#{surveyController.atualizaMapa}" ajax="false" />
+					<p:outputLabel value="Min Value #{surveyController.minValue}" />
+			</p:panel>
+		</p:panelGrid>
+	</h:form>
 </h:body>
 </html>
