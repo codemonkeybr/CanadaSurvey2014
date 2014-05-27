@@ -44,7 +44,7 @@ public class SurveyInfo implements Serializable{
 	
 	private Float latitude;
 	private Float longitude;
-	private Boolean isSelected;
+	private boolean isSelected;
 	
 	public Integer getRank() {
 		return rank;
@@ -239,11 +239,15 @@ public class SurveyInfo implements Serializable{
 	public void setLongitude(Float longitude) {
 		this.longitude = longitude;
 	}
-	public Boolean getIsSelected() {
+	public boolean isSelected() {
 		return isSelected;
 	}
-	public void setIsSelected(Boolean isSelected) {
+	public boolean getIsSelected() {
+		return isSelected;
+	}
+	public void setSelected(boolean isSelected) {
 		this.isSelected = isSelected;
 	}
+	
 	
 }

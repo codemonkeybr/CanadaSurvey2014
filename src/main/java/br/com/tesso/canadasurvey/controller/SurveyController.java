@@ -15,8 +15,10 @@ import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ViewScoped;
 
 import org.primefaces.event.map.OverlaySelectEvent;
+import org.primefaces.event.map.StateChangeEvent;
 import org.primefaces.model.map.DefaultMapModel;
 import org.primefaces.model.map.LatLng;
+import org.primefaces.model.map.LatLngBounds;
 import org.primefaces.model.map.MapModel;
 import org.primefaces.model.map.Marker;
 
@@ -41,9 +43,14 @@ public class SurveyController implements Serializable {
 	private Float maxValue;
 	private Float minValue;
 	private Float[][] markersRange;
+	
+	private LatLng center;
+	private int zoomLevel;
 
 	@PostConstruct
 	public void carregar() {
+		zoomLevel = 4;
+		center = new LatLng(new Float("56.2906375105966"), new Float("-93.56330025"));
 		
 		advancedModel = new DefaultMapModel();
 		
@@ -65,11 +72,10 @@ public class SurveyController implements Serializable {
 
 			while ((line = br.readLine()) != null) {
 				SurveyInfo survey = new SurveyInfo();
-				// use comma as separator
+				// use TAB as separator
 				String[] data = line.split(cvsSplitBy);
 
-				System.out.println("City [name= " + data[1] + " , Population="
-						+ data[2] + "]");
+				//System.out.println("City [name= " + data[1] + " , Population=" + data[2] + "]");
 
 				survey.setRank(new Integer(data[0]));
 				survey.setName(data[1]);
@@ -78,6 +84,8 @@ public class SurveyController implements Serializable {
 				survey.setUnemploymentRate(new Float(data[4]));
 				survey.setAverageHouseholdIncome(new BigDecimal(data[5]
 						.replace(",", "").replace("$", "")));
+				
+				
 				if (data.length > 30) {
 					survey.setLatitude(new Float(data[30]));
 					survey.setLongitude(new Float(data[31]));
@@ -104,7 +112,7 @@ public class SurveyController implements Serializable {
 	
 
 
-	public void atualizaMapa() throws Exception{
+	public void refreshMap() throws Exception{
 
 		advancedModel = new DefaultMapModel();
 
@@ -112,27 +120,29 @@ public class SurveyController implements Serializable {
 		prepareMarkersRanges();
 
 		for (SurveyInfo s : listSurveyInfos) {
-			if (s.getLatitude() != null && s.getLongitude() != null) {
-				LatLng coord1 = new LatLng(s.getLatitude(), s.getLongitude());
-				advancedModel.addOverlay(new Marker(coord1, s.getName(), getText(s), getProperMarker(s)));
+			if (s.getLatitude() != null && s.getLongitude() != null && s.isSelected()) {
+				LatLng coord = new LatLng(s.getLatitude(), s.getLongitude());
+				advancedModel.addOverlay(new Marker(coord, s.getName(), getText(s), getProperMarker(s)));
 				System.out.println("Marker Placed at " + s.getName());
 			}
 		}
 	}
 
 	private String getText(SurveyInfo s) {
+		String str = null;
 		if (selectedItem == 1) {
-			return "Population: "+s.getPopulation().toString();
-		}
-		return "";
+			str = "POPULATION: ";
+		} else if (selectedItem == 2) {
+			str ="POPULATION GROWTH 2008 TO 2013 (%): ";
+		} else if (selectedItem == 3)
+			str = "UNEMPLOYMENT RATE (%): ";
+			return str + getValueFromSurveyItem(s).toString();			
 	}
 
 	private String getProperMarker(SurveyInfo s) {
 		Float value = 0f;
 
-		if (selectedItem == 1) {
-			value = new Float(s.getPopulation());
-		}
+		value = getValueFromSurveyItem(s);
 
 		if (markersRange[0][0] <= value && markersRange[0][1] >= value) {
 			return "icons/yellow-dot.png";
@@ -157,27 +167,53 @@ public class SurveyController implements Serializable {
 
 	}
 
+
+
+	/**
+	 * @param s
+	 * @return
+	 */
+	private Float getValueFromSurveyItem(SurveyInfo s) {
+		if (selectedItem == 1) 
+			return new Float(s.getPopulation());
+		else if (selectedItem == 2)
+			return new Float(s.getPopulationGrowth());
+		else if (selectedItem == 3)
+			return new Float(s.getUnemploymentRate());
+		else
+			return null;
+	}
+
 	private void prepareMarkersRanges() {
 		markersRange = new Float[5][2];
 
 		Float markerLength = maxValue - minValue;
-		Float maxRange = markerLength / 5;
+		Float range = markerLength / 5;
 
 		markersRange[0][0] = minValue;
-		markersRange[0][1] = maxRange;
+		markersRange[0][1] = minValue + range;
 
-		markersRange[1][0] = markersRange[0][1] + 1;
-		markersRange[1][1] = maxRange * 2;
+		markersRange[1][0] = markersRange[0][1];
+		markersRange[1][1] = markersRange[1][0] + range;
 
 		markersRange[2][0] = markersRange[1][1];
-		markersRange[2][1] = maxRange * 3;
+		markersRange[2][1] = markersRange[2][0] + range;
 
 		markersRange[3][0] = markersRange[2][1];
-		markersRange[3][1] = maxRange * 4;
+		markersRange[3][1] = markersRange[3][0] + range;
 
-		markersRange[4][0] = markersRange[3][1] + 1;
+		markersRange[4][0] = markersRange[3][1];
 		markersRange[4][1] = maxValue;
 
+	}
+	
+	public void updateCities() throws Exception{
+		for (SurveyInfo s : listSurveyInfos) {
+			if(s.isSelected()) 
+				System.out.println(s.getName() + " Selected");
+				
+		}
+		
 	}
 
 	private void calculateMaxMin() {
@@ -185,21 +221,25 @@ public class SurveyController implements Serializable {
 		maxValue = 0f;
 		minValue = 0f;
 
-		if (selectedItem == 1) {
-			for (SurveyInfo s : listSurveyInfos) {
-				getMaxnMin(s.getPopulation());
-			}
-
-		}
+		if (selectedItem > 0) 
+			for (SurveyInfo s : listSurveyInfos) 
+				if(s.isSelected()) 
+					setMaxnMin(getValueFromSurveyItem(s));
 
 	}
 
-	private void getMaxnMin(Float value) {
+	private void setMaxnMin(Float value) {
 		if (value.compareTo(maxValue) > 0 || maxValue.equals(0f))
 			maxValue = value;
 		if (value.compareTo(minValue) < 0 || minValue.equals(0f))
 			minValue = value;
 
+	}
+	
+	public void onStateChange(StateChangeEvent event) {
+        this.center = event.getCenter();
+        this.zoomLevel = event.getZoomLevel();
+        System.out.println("zoom: "+this.zoomLevel + " | " + center.getLat() +","+center.getLng() );
 	}
 	
 	public void onMarkerSelect(OverlaySelectEvent event) {
@@ -253,5 +293,23 @@ public class SurveyController implements Serializable {
 	public void setMarkersRange(Float[][] markersRange) {
 		this.markersRange = markersRange;
 	}
+
+	public LatLng getCenter() {
+		return center;
+	}
+
+	public void setCenter(LatLng center) {
+		this.center = center;
+	}
+
+	public int getZoomLevel() {
+		return zoomLevel;
+	}
+
+	public void setZoomLevel(int zoomLevel) {
+		this.zoomLevel = zoomLevel;
+	}
+	
+	
 
 }

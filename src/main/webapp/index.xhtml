@@ -4,6 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:h="http://java.sun.com/jsf/html"
 	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:c="http://java.sun.com/jstl/core"
 	xmlns:ui="http://java.sun.com/jsf/facelets"
 	xmlns:p="http://primefaces.org/ui">
 
@@ -16,14 +17,15 @@
 	<h:form>
 		<p:panelGrid columns="2">
 
-			<p:gmap center="54.460594, -96.200019" zoom="4" type="MAP"
+			<p:gmap center="#{surveyController.center.lat},#{surveyController.center.lng}" zoom="#{surveyController.zoomLevel}" type="MAP"
 				style="width:800px;height:600px"
 				model="#{surveyController.advancedModel}" >
 				
+				<p:ajax event="stateChange" listener="#{surveyController.onStateChange}" />
 				<p:ajax event="overlaySelect" listener="#{surveyController.onMarkerSelect}" />
 				
 				<p:gmapInfoWindow>
-					<p:outputPanel style="text-align:center;display:block;margin:auto">
+					<p:outputPanel style="text-align:center;display:block;margin:auto;width:100px;">
 						<h:outputText value="#{surveyController.marker.title}" />
 						<p/>
 						<h:outputText value="#{surveyController.marker.data}" />
@@ -31,34 +33,41 @@
 				</p:gmapInfoWindow>
 			</p:gmap>
 			<p:panel>
+				<p:panel rendered="#{surveyController.minValue != null || surveyController.maxValue != null}">
 				<p:panelGrid columns="2" width="100%">
 					<p:outputLabel value="Min Value #{surveyController.minValue}" />
 					<p:outputLabel value="Max Value #{surveyController.maxValue}" />
 				</p:panelGrid>
 				<p>
 					<img src="#{request.contextPath}/icons/yellow-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[0][0]} - #{surveyController.markersRange[0][1]}" /><br/>
-					<img src="#{request.contextPath}/icons/blue-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[1][0]} - #{surveyController.markersRange[1][1]}" /><br/>
-					<img src="#{request.contextPath}/icons/green-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[2][0]} - #{surveyController.markersRange[2][1]}" /><br/>
-					<img src="#{request.contextPath}/icons/purple-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[3][0]} - #{surveyController.markersRange[3][1]}" /><br/>
-					<img src="#{request.contextPath}/icons/red-dot.png" alt="" /><p:outputLabel value="#{surveyController.markersRange[4][0]} - #{surveyController.markersRange[4][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/blue-dot.png" alt="" /><p:outputLabel value="&gt;#{surveyController.markersRange[1][0]} - #{surveyController.markersRange[1][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/green-dot.png" alt="" /><p:outputLabel value="&gt;#{surveyController.markersRange[2][0]} - #{surveyController.markersRange[2][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/purple-dot.png" alt="" /><p:outputLabel value="&gt;#{surveyController.markersRange[3][0]} - #{surveyController.markersRange[3][1]}" /><br/>
+					<img src="#{request.contextPath}/icons/red-dot.png" alt="" /><p:outputLabel value="&gt;#{surveyController.markersRange[4][0]} - #{surveyController.markersRange[4][1]}" /><br/>
 				</p>
+				</p:panel>
 				<p:panelGrid columns="1">
 					<p:selectOneRadio id="options" value="#{surveyController.selectedItem}" layout="grid" columns="2">
 						<f:selectItem itemLabel="POPULATION" itemValue="1" />
-						<f:selectItem itemLabel="POPULATION GROWTH 2008 TO 2013"
-							itemValue="2" />
-						<f:selectItem itemLabel="AVERAGE HOUSEHOLD INCOME" itemValue="3" />
-						<f:selectItem itemLabel="AVERAGE HOUSEHOLD NET WORTH"
-							itemValue="4" />
-						<f:selectItem itemLabel="AVERAGE HOUSE PRICES" itemValue="5" />
+						<f:selectItem itemLabel="POPULATION GROWTH 2008 TO 2013 (%)" itemValue="2" />
+						<f:selectItem itemLabel="UNEMPLOYMENT RATE (%)" itemValue="3" />
+						<f:selectItem itemLabel="AVERAGE HOUSEHOLD INCOME" itemValue="4" />
+						<f:selectItem itemLabel="AVERAGE HOUSEHOLD NET WORTH" itemValue="5" />
+						<f:selectItem itemLabel="AVERAGE HOUSE PRICES" itemValue="6" />
 					</p:selectOneRadio>
 
 				</p:panelGrid>
-				<p:commandButton value="atualizar" process="options"
-					actionListener="#{surveyController.atualizaMapa}" ajax="false" />
-					<p:outputLabel value="Min Value #{surveyController.minValue}" />
+				<p:commandButton value="Refresh Map" process="options"
+					actionListener="#{surveyController.refreshMap}" ajax="false" update="@form" />
 			</p:panel>
 		</p:panelGrid>
+		<p:scrollPanel mode="native" style="height:200px">	
+			<p:dataGrid value="#{surveyController.listSurveyInfos}" var="survey" rowIndexVar="sts" columns="5">
+				<p:selectBooleanCheckbox itemLabel="#{survey.name}" value="#{surveyController.listSurveyInfos.get(sts).selected}" >
+					<p:ajax listener="#{surveyController.updateCities()}" />
+				</p:selectBooleanCheckbox>
+			</p:dataGrid>
+		</p:scrollPanel>
 	</h:form>
 </h:body>
 </html>
